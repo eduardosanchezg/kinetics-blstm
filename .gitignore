@@ -34,5 +34,5 @@ env.bak/
 venv.bak/
 
 # Ignore a common data directory
-data/
-features/
+/data
+/features
