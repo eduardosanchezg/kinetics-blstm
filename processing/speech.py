@@ -33,17 +33,22 @@ def extract_world_parameters(audio,
     vuv = (f0 > 0).astype(int)
 
     if return_individual:
-        return sp, encoded_ap, f0, vuv
+        return dict(sp=sp, encoded_ap=encoded_ap, f0=f0, vuv=vuv)
     
     return np.concatenate((sp, encoded_ap, f0, vuv), axis=1)
 
-def world_reconstruct_audio(file_name, fs, frame_period, sp, encoded_ap, f0, vuv, fft_size=1024):
+def world_reconstruct_audio(file_name,
+                            sp,
+                            encoded_ap,
+                            f0,
+                            vuv,
+                            fs=16000,
+                            frame_period=10,
+                            fft_size=1024):
     f0 = f0.reshape(-1)
     ap = ctg_array(encoded_ap, dtype=np.float64)
     ap = ap.reshape(-1, 1)
-    decoded_ap = pw.decode_aperiodicity(aperiodicity=ap, 
-                                        fs=fs,
-                                        fft_size=fft_size)
+    decoded_ap = pw.decode_aperiodicity(ap, fs, fft_size)
 
     audio = pw.synthesize(f0=f0,
                           spectrogram=sp,
