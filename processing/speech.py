@@ -22,7 +22,7 @@ def extract_world_parameters(audio,
                        f0=f0,
                        temporal_positions=t,
                        fs=target_fs)
-    ap = pw.d4c(x=audio,
+    ap = pw.d4c(x=downsampled,
                 f0=f0,
                 temporal_positions=t,
                 fs=target_fs)
