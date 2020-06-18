@@ -5,5 +5,5 @@ WORLD_PARAM_NAME = 'world_speech_parameters'
 
 WORLD_RECONSTRUCTION_NAME = 'world_speech_reconstruction'
 
-DATA_DIR = './data'
+DATA_DIR = '/home/eduardo/master/mrp2/data'
 FEATURES_DIR = './features'
