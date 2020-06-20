@@ -81,8 +81,8 @@ if __name__=="__main__":
     frameshift = 0.01 #0.01
     modelOrder=4
     stepSize=5
-    path = r'C:/data/processed/LSL-Speech/eeg/'
-    outPath = r'C:/data/processed/LSL-Speech/features/'
+    path = r'/home/eduardo/master/mrp2/data/'
+    outPath = r'/home/eduardo/master/mrp2/out'
     pts = ['kh1', 'kh2', 'kh3','kh4','kh5','kh6','kh7','kh8','kh9']
     pts=['kh9']
     sessions = [1,2,1,1,1,1,1,1,1]
