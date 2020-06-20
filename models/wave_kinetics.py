@@ -5,9 +5,8 @@ from processing.signal import high_gamma
 from processing.signal import low_component
 from processing.signal import analytic_amp
 import tensorflow as tf
-from keras.preprocessing import sequence
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Embedding, LSTM, Bidirectional, Input, Activation
+from keras.layers import Dense, Dropout, LSTM, Bidirectional, Activation
 
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -30,9 +29,6 @@ lp = low_component(rawseeg, pl.seeg_fs)
 X_low_component = analytic_amp(lp)
 
 
-# cut texts after this number of words
-# (among top max_features most common words)
-
 batch_size = 1000
 overlap_size = 200
 
@@ -49,8 +45,6 @@ X = split_with_overlap(X,batch_size,overlap_size)
 Y = split_with_overlap(Y,batch_size,overlap_size)
 
 x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.25, random_state=42)
-print(len(x_train), 'train sequences')
-print(len(x_test), 'test sequences')
 
 y_train = np.array(y_train)
 y_test = np.array(y_test)
@@ -66,10 +60,6 @@ model.add(Activation('softmax'))
 
 model.compile(optimizer='adam',loss='categorical_crossentropy', metrics=['accuracy',tf.keras.metrics.MeanSquaredError()])
 
-
-
-
-print('Train...')
 model.fit(x_train, y_train,
           epochs=100,
           validation_data=(x_test, y_test))
