@@ -41,7 +41,6 @@ print('Loading data...')
 Y = np.load('/home/eduardo/master/mrp2/kinetics/kh4_1_metrics.npy')
 Y = Y.T
 X = np.hstack((X_high_gamma, X_low_component))
-#X = X.T
 X = X[:Y.shape[0], :]
 
 num_features = X.shape[1]
@@ -53,11 +52,6 @@ x_train, x_test, y_train, y_test = train_test_split(X, Y, test_size=0.25, random
 print(len(x_train), 'train sequences')
 print(len(x_test), 'test sequences')
 
-# print('Pad sequences (samples x time)')
-# x_train = sequence.pad_sequences(x_train, maxlen=maxlen)
-# x_test = sequence.pad_sequences(x_test, maxlen=maxlen)
-# print('x_train shape:', x_train.shape)
-# print('x_test shape:', x_test.shape)
 y_train = np.array(y_train)
 y_test = np.array(y_test)
 x_train = np.array(x_train)
@@ -70,9 +64,6 @@ model.add(Dense(6))
 model.add(Dropout(0.1))
 model.add(Activation('softmax'))
 
-
-
-# try using different optimizers and different optimizer configs
 model.compile(optimizer='adam',loss='categorical_crossentropy', metrics=['accuracy',tf.keras.metrics.MeanSquaredError()])
 
 
