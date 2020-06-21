@@ -37,8 +37,7 @@ def extract_world_parameters(audio,
     
     return np.concatenate((sp, encoded_ap, f0, vuv), axis=1)
 
-def world_reconstruct_audio(file_name,
-                            sp,
+def world_reconstruct_audio(sp,
                             encoded_ap,
                             f0,
                             vuv,
@@ -56,4 +55,4 @@ def world_reconstruct_audio(file_name,
                           fs=fs,
                           frame_period=frame_period)
     scaled_audio = np.int16(audio / np.max(np.abs(audio)) * 32767)
-    write_wav(file_name, fs, scaled_audio)
+    return scaled_audio

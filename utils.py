@@ -44,6 +44,9 @@ class PatientLoader:
         return self._get(feature_name)
 
     def get_file_format(self, extension = '.npy', directory=None):
+        """ Useful to create new files for the same patient.
+        Usage: `
+        """
         file_format = self._file_placeholder
         if extension != '.npy':
             file_format = file_format.replace('.npy', extension)
