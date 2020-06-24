@@ -32,10 +32,11 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+wandb/
 
 # Aachen cluster specific stuff
 core.*
 
 # Ignore a common data directory
 /data
-/features
+

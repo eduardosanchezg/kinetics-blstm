@@ -3,17 +3,18 @@ import pyworld as pw
 
 from numpy import ascontiguousarray as ctg_array
 from scipy.io.wavfile import write as write_wav
-from scipy.signal import decimate
+from librosa import resample
 
 from constants import AUDIO_fs
+
 
 def extract_world_parameters(audio,
                              fs=AUDIO_fs,
                              target_fs=16000,
                              frame_period=10, # ms
                              return_individual=False):
-    downsampled = decimate(audio, int(fs / target_fs))
-    downsampled = ctg_array(downsampled, dtype=np.float64)
+    downsampled = resample(audio, orig_sr=fs, target_sr=target_fs)
+    downsampled = ctg_array(downsampled, dtype=np.double)
 
     f0, t = pw.harvest(x=downsampled,
                        fs=target_fs,
@@ -37,6 +38,14 @@ def extract_world_parameters(audio,
     
     return np.concatenate((sp, encoded_ap, f0, vuv), axis=1)
 
+
+def split_world_param(param):
+    return dict(sp=ctg_array(param[:, :513], dtype=np.double),
+                encoded_ap=ctg_array(param[:, [513]], dtype=np.double),
+                f0=ctg_array(param[:, [514]], dtype=np.double),
+                vuv=ctg_array(param[:, [515]], dtype=np.double))
+
+
 def world_reconstruct_audio(sp,
                             encoded_ap,
                             f0,
@@ -45,9 +54,9 @@ def world_reconstruct_audio(sp,
                             frame_period=10,
                             fft_size=1024):
     f0 = f0.reshape(-1)
-    ap = ctg_array(encoded_ap, dtype=np.float64)
-    ap = ap.reshape(-1, 1)
-    decoded_ap = pw.decode_aperiodicity(ap, fs, fft_size)
+    encoded_ap = encoded_ap.reshape(-1, 1)
+    encoded_ap = ctg_array(encoded_ap, dtype=np.float64)
+    decoded_ap = pw.decode_aperiodicity(encoded_ap, fs, fft_size)
 
     audio = pw.synthesize(f0=f0,
                           spectrogram=sp,

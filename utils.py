@@ -3,6 +3,8 @@ import numpy as np
 
 from constants import DATA_DIR, SEEG_fs
 
+from datetime import datetime
+
 class PatientLoader:
 
     _seeg = 'sEEG'
@@ -43,9 +45,11 @@ class PatientLoader:
     def get_features(self, feature_name):
         return self._get(feature_name)
 
-    def get_file_format(self, extension = '.npy', directory=None):
+    def get_file_format(self, extension='.npy', directory=None):
         """ Useful to create new files for the same patient.
-        Usage: `
+        Usage: 
+            loader = PatientLoader(...)
+            loader.get_file_format().format("some_features")
         """
         file_format = self._file_placeholder
         if extension != '.npy':
@@ -62,4 +66,38 @@ class PatientLoader:
     def _make_placeholder(self):
         file_name = f'{self._patient_id}_{self._session}_{{}}.npy'
         return self._data_dir  + os.path.sep + file_name
-         
+    
+    
+def iter_sessions(data_dir=DATA_DIR, log=False, indices_only=False):
+    if indices_only:
+        get = lambda p, s: p, s
+    else:
+        get = lambda p, s: PatientLoader(p, s, data_dir=data_dir)
+    if log:
+        msg = lambda p, s: f'Patient {p}: session {s} --- {datetime.now().strftime("%d-%M-%Y %H:%M:%S")}'
+    for p in range(1, 11):
+        if p == 2:
+            if log: print(msg(p, 1))
+            yield get(p, 1)
+            if log: print(msg(p, 2))
+            yield get(p, 2)
+        else:
+            if log: print(msg(p, 1))
+            yield get(p, 1)
+
+
+# class DataLoader:
+    
+#     def __init__(self, patients, baldey):
+#         if patients:
+#             if not isinstance(patients, list):
+#                 patients = [patients]
+#             self.patients = patients
+#             self.load_baldey = False
+#         else:
+#             self.load_baldey = True
+            
+            
+#     def make_decoder_dataset(world_frame_period):
+#         import tensorflow as tf
+            
