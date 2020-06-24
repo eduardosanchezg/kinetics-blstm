@@ -17,6 +17,7 @@ params = {
     'sequence_length': 60,
     'batch_size': 100,
     'lr': 0.002,
+    'predict_midpoint': False,
     'patient': 4,
     'skipped_last': 0
 }
@@ -53,6 +54,7 @@ def make_datasets(art_features,
                   world_features,
                   sequence_length,
                   batch_size,
+                  predict_midpoint,
                   validation_pct,
                   step_size=1):
     # Get the features to the same length
@@ -65,8 +67,10 @@ def make_datasets(art_features,
     y = []
     for i in range(0, n - sequence_length, step_size):
         X.append(art_features[i:(i + sequence_length), ...])
-        y.append(world_features[i + (sequence_length // 2)]) # Middle element
-        # y.append(world_features[i + sequence_length - 1]) # Last element
+        if predict_midpoint:
+            y.append(world_features[i + (sequence_length // 2)]) # Middle element
+        else:
+            y.append(world_features[i + sequence_length - 1]) # Last element
 
     n = len(X)
     val_idx = np.round((1 - validation_pct) * n).astype(int)
@@ -94,6 +98,7 @@ train_ds, val_ds, rec_data = make_datasets(
     world_params,
     sequence_length=params['sequence_length'],
     batch_size=params['batch_size'],
+    predict_midpoint=params['predict_midpoint'],
     validation_pct=0.2
 )
 
@@ -109,22 +114,47 @@ try:
     wandb.init(project='mrp2',
                config=params)
     callbacks.append(WandbCallback())
+    def log(name, val):
+        wandb.log({name: val})
+    def log_wav(audio, fs):
+        wandb.log({'rec_audio': wandb.Audio(audio, sample_rate=fs)})
 except:
     tensorboard_cb = tf.keras.callbacks.TensorBoard(log_dir="./logs")
     callbacks.append(tensorboard_cb)
+    logger = tf.summary.create_file_writer('./logs/metrics')
+    def log(name, val, epoch):
+        tf.summary.scalar(name, data=val, step=epoch)
+    log_wav = lambda _: None # not implemented for TensorBoard - do nothing
 
 
 ### TRAINING ###
 input_shape = (params['sequence_length'], art_features.shape[1]) # (seq_length, 6)
 num_outputs = world_params.shape[1]
-# model = decoder_model(in_shape=input_shape,
-#                       n_outputs=num_outputs,
-#                       lr=params['lr'])
-run_path = 'antonwnk/mrp2/1dfspt5y'
-model = wandb.restore('model-best.h5', run_path=run_path)
-model = tf.keras.models.load_model(model.name)
+model = decoder_model(in_shape=input_shape,
+                      n_outputs=num_outputs,
+                      lr=params['lr'])
+# run_path = 'antonwnk/mrp2/1dfspt5y'
+# model = wandb.restore('model-best.h5', run_path=run_path)
+# model = tf.keras.models.load_model(model.name)
 model.summary()
 
+### INTELLIGIBILITY CALLBACK ###
+def stoi_cb(epoch, logs):
+    if epoch < 2 or (epoch % 2) != 0:
+        return
+
+    pred_feats = split_world_param(model.predict(rec_data[0]))
+    pred_rec = world_reconstruct_audio(**pred_feats,
+                                       fs=16000,
+                                       frame_period=1)
+    label_feats = split_world_param(rec_data[1])
+    label_rec = world_reconstruct_audio(**label_feats,
+                                        fs=16000,
+                                        frame_period=1)
+    log('stoi', stoi(label_rec, pred_rec, fs_signal=16000))
+    log_wav(pred_rec, fs=16000)
+
+callbacks.append(tf.keras.callbacks.LambdaCallback(on_epoch_end=stoi_cb))
 
 
 model.fit(train_ds,
