@@ -109,12 +109,10 @@ model.add(Dense(Y.shape[1]))
 
 model.compile(optimizer=tf.keras.optimizers.Adam(0.01),loss='huber_loss', metrics=['mean_absolute_error'])
 
-
 model.fit(train,
           epochs=10,
           validation_data=test,
           callbacks=callbacks)
-
 
 model.summary()
 
