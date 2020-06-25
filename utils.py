@@ -14,6 +14,8 @@ class PatientLoader:
     _noisy = 'noisyAudio'
 
     def __init__(self, patient_id, session=1, data_dir=DATA_DIR):
+        if type(patient_id) == float:
+            patient_id = f'kh{int(patient_id)}'
         if type(patient_id) == int:
             patient_id = f'kh{patient_id}'
         self._patient_id = patient_id

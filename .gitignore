@@ -34,9 +34,12 @@ env.bak/
 venv.bak/
 wandb/
 
-# Aachen cluster specific stuff
-core.*
+# Ignore model weights
+*.h5
 
 # Ignore a common data directory
 /data
+
+# Aachen cluster specific stuff
+core.*
 

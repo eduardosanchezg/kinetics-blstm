@@ -1,0 +1,8 @@
+program: train_decoder.py
+method: grid
+metric:
+    name: val_loss
+    goal: minimize
+parameters:
+    patient:
+        values: [1, 2, 3, 4, 5]

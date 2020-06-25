@@ -13,12 +13,18 @@ from scipy.io import wavfile
 
 np.random.seed(0)
 
+from argparse import ArgumentParser
+parser = ArgumentParser()
+parser.add_argument('--patient', type=int)
+args = parser.parse_args()
+
+
 params = {
     'sequence_length': 60,
-    'batch_size': 100,
+    'batch_size': 2000,
     'lr': 0.002,
-    'predict_midpoint': False,
-    'patient': 4,
+    'predict_midpoint': True,
+    'patient': args.patient,
     'skipped_last': 0
 }
 
@@ -45,10 +51,11 @@ def decoder_model(in_shape, n_outputs, lr):
 
 ### DATA LOADING ###
 loader = PatientLoader(params['patient'])
-art_features = loader.get_features('metrics_1k').T
-world_params = loader.get_features(f'{const.WORLD_PARAM_NAME}_1')
+# art_features = loader.get_features('metrics_1k').T
+art_features = loader.get_features('gen_kinetics')
+world_features = loader.get_features(f'{const.WORLD_PARAM_NAME}_1')
 if params['skipped_last']:
-    world_params = world_params[:, :-params['skipped_last']]
+    world_features = world_features[:, :-params['skipped_last']]
 
 def make_datasets(art_features,
                   world_features,
@@ -95,7 +102,7 @@ def make_datasets(art_features,
 
 train_ds, val_ds, rec_data = make_datasets(
     art_features,
-    world_params,
+    world_features,
     sequence_length=params['sequence_length'],
     batch_size=params['batch_size'],
     predict_midpoint=params['predict_midpoint'],
@@ -103,9 +110,19 @@ train_ds, val_ds, rec_data = make_datasets(
 )
 
 ### CALLBACKS ###
-stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss',
-                                            patience=10,
-                                            min_delta=0.001)
+class DelayedEarlyStopping(tf.keras.callbacks.EarlyStopping):
+    def __init__(self, start_epoch, **kwargs):
+        super(DelayedEarlyStopping, self).__init__(**kwargs)
+        self._start_epoch = start_epoch
+    
+    def on_epoch_end(self, epoch, logs=None):
+        if epoch > self._start_epoch:
+            super().on_epoch_end(epoch, logs=logs)
+
+stopping = DelayedEarlyStopping(start_epoch=5,
+                                monitor='val_loss',
+                                patience=6,
+                                min_delta=0.001)
 callbacks = [stopping]
 
 try:
@@ -129,7 +146,7 @@ except:
 
 ### TRAINING ###
 input_shape = (params['sequence_length'], art_features.shape[1]) # (seq_length, 6)
-num_outputs = world_params.shape[1]
+num_outputs = world_features.shape[1]
 model = decoder_model(in_shape=input_shape,
                       n_outputs=num_outputs,
                       lr=params['lr'])
@@ -139,10 +156,7 @@ model = decoder_model(in_shape=input_shape,
 model.summary()
 
 ### INTELLIGIBILITY CALLBACK ###
-def stoi_cb(epoch, logs):
-    if epoch < 2 or (epoch % 2) != 0:
-        return
-
+def stoi_cb(epoch, logs=None, final=False):
     pred_feats = split_world_param(model.predict(rec_data[0]))
     pred_rec = world_reconstruct_audio(**pred_feats,
                                        fs=16000,
@@ -152,9 +166,11 @@ def stoi_cb(epoch, logs):
                                         fs=16000,
                                         frame_period=1)
     log('stoi', stoi(label_rec, pred_rec, fs_signal=16000))
-    log_wav(pred_rec, fs=16000)
+    if (epoch < 2 and (epoch % 5) != 0) or final:
+        log_wav(pred_rec, fs=16000)
 
-callbacks.append(tf.keras.callbacks.LambdaCallback(on_epoch_end=stoi_cb))
+callbacks.append(tf.keras.callbacks.LambdaCallback(on_epoch_end=stoi_cb,
+                                                   on_train_end=lambda logs: stoi_cb(-1, final=True)))
 
 
 model.fit(train_ds,
